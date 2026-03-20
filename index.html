@@ -32,7 +32,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
 .cover-btn:hover{background:rgba(255,255,255,.22);}
 
 /* DEST BAR */
-.dest-bar{background:var(--surface);border-bottom:1px solid #E8E6E0;padding:9px 1.5rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.dest-bar{background:var(--surface);border-bottom:1px solid #E8E6E0;padding:9px 1.5rem;display:flex;align-items:center;gap:10px;flex-wrap:nowrap;overflow:hidden;}
 .dest-wrap{display:flex;align-items:center;flex:1;min-width:160px;background:#F5F3EE;border-radius:var(--radius-sm);border:1.5px solid transparent;transition:border-color .2s;}
 .dest-wrap:focus-within{border-color:var(--weekday);}
 .dest-icon{padding:0 8px 0 10px;font-size:13px;color:var(--ink3);}
@@ -46,7 +46,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
 .weather-error{font-size:12px;color:#cc3300;}
 
 /* LAYOUT */
-.main{max-width:1100px;margin:0 auto;padding:1.25rem 1rem 3rem;}
+.main{max-width:1400px;margin:0 auto;padding:1.25rem 1.5rem 3rem;}
 .tabs{display:flex;gap:4px;margin-bottom:1.25rem;background:var(--surface);border-radius:var(--radius-sm);padding:4px;border:1px solid #E8E6E0;}
 .tab{flex:1;font-family:var(--font-body);font-size:13px;font-weight:500;padding:7px;border:none;background:transparent;cursor:pointer;border-radius:6px;color:var(--ink3);transition:all .15s;}
 .tab.active{background:var(--ink);color:#fff;}
@@ -63,7 +63,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
 .sum-card.over{border-color:#cc3300;background:#fff0ed;}
 
 /* DAY COLUMNS */
-.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;overflow-x:auto;padding-bottom:4px;}
+.week-grid{display:grid;grid-template-columns:repeat(7,minmax(160px,1fr));gap:12px;overflow-x:auto;padding-bottom:4px;}
 @media(max-width:900px){.week-grid{grid-template-columns:repeat(4,minmax(220px,1fr));}}
 @media(max-width:540px){.week-grid{grid-template-columns:repeat(2,minmax(200px,1fr));}}
 
@@ -164,7 +164,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
 #mapEl{width:100%;height:100%;}
 .pin-section-title{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin:12px 0 7px;}
 .pin-list{display:flex;flex-direction:column;gap:6px;}
-.pin-item{background:var(--surface);border-radius:var(--radius-sm);border:1.5px solid #E8E6E0;padding:9px 12px;display:flex;align-items:center;gap:10px;}
+.pin-item{background:var(--surface);border-radius:var(--radius-sm);border:1.5px solid #E8E6E0;padding:9px 12px;display:flex;align-items:center;gap:10px;transition:border-color .15s;}.pin-item:hover{border-color:#ccc;}
 .pin-badge{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;color:#fff;}
 .pin-name{font-size:13px;font-weight:500;}
 .pin-sub{font-size:11px;color:var(--ink3);margin-top:1px;}
@@ -232,7 +232,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
     <input class="dest-input" id="destInput" placeholder="Enter destination..."/>
   </div>
   <button class="weather-btn" onclick="fetchWeather()">Get weather</button>
-  <div id="weatherPills" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+  <div id="weatherPills" style="display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;padding:2px 0;min-width:0;flex:1;"></div>
   <div class="weather-error" id="weatherError"></div>
 </div>
 
@@ -709,7 +709,7 @@ function renderVenueCards(){
         <div class="venue-card-actions">
           <select class="day-select" id="daysel-${v.id}">${dayOptions}</select>
           <button class="add-day-btn wd" id="addbtn-${v.id}" onclick="addVenueToDay('${v.id}',this)">+ Add</button>
-          ${v.website?`<a href="${escH(v.website)}" target="_blank" style="font-size:11px;padding:5px 8px;border-radius:var(--radius-sm);border:1.5px solid #E0DEDB;color:var(--ink2);text-decoration:none;display:flex;align-items:center;">↗</a>`:''}
+          ${v.website?`<a href="${escH(v.website)}" target="_blank" style="font-size:11px;padding:5px 10px;border-radius:var(--radius-sm);border:1.5px solid #E0DEDB;color:var(--ink2);text-decoration:none;display:flex;align-items:center;gap:4px;font-weight:500;">Website ↗</a>`:''}
         </div>
       </div>`;
     card.onclick=e=>{if(e.target.tagName==='BUTTON'||e.target.tagName==='A'||e.target.tagName==='SELECT'||e.target.tagName==='OPTION')return;highlightVenue(v.id,v.lat,v.lon);};
@@ -766,7 +766,7 @@ async function plotItineraryPins(){
       marker.bindPopup(`<strong>${act.name}</strong><br>${act.day} · ${act.time}`);
       itinMarkers.push(marker);bounds.push([lat,lon]);
       const item=document.createElement('div');item.className='pin-item';
-      item.innerHTML=`<div class="pin-badge" style="background:${color};">${i+1}</div><div><div class="pin-name">${escH(act.name)}</div><div class="pin-sub">${act.day} · ${act.time} · ${escH(act.location)}</div></div>`;
+      item.innerHTML=`<div class="pin-badge" style="background:${color};">${i+1}</div><div style="flex:1;min-width:0;"><div class="pin-name">${escH(act.name)}</div><div class="pin-sub">${act.day} · ${act.time} · ${escH(act.location)}</div></div><button onclick="removeFromItinerary('${act.day}',${act.id},this)" style="flex-shrink:0;width:24px;height:24px;border-radius:5px;border:none;background:transparent;cursor:pointer;font-size:13px;color:#aaa;display:flex;align-items:center;justify-content:center;" title="Remove from itinerary">✕</button>`;
       list.appendChild(item);i++;
     }catch(e){}
   }
@@ -782,6 +782,13 @@ function addVenueToDay(venueId,btn){
   activities[day].sort((a,b)=>a.time.localeCompare(b.time));
   if(btn){btn.textContent='Added ✓';btn.style.background='#0A5C38';setTimeout(()=>{btn.textContent='+ Add';btn.style.background='';const cls=DAY_CLS(day);btn.className='add-day-btn '+(cls==='wd'?'wd':'we');},2000);}
   render();
+}
+
+function removeFromItinerary(day,id,btn){
+  activities[day]=activities[day].filter(a=>a.id!==id);
+  render();
+  // Re-plot pins after short delay to let render settle
+  setTimeout(()=>plotItineraryPins(),50);
 }
 
 // ── TABS ───────────────────────────────────────────────────────────────────
