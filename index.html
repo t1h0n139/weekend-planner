@@ -198,6 +198,16 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
 .share-title{font-family:var(--font-display);font-size:19px;font-weight:700;margin-bottom:12px;}
 .share-output{background:#F5F3EE;border-radius:var(--radius-sm);padding:12px;font-family:monospace;font-size:12px;color:var(--ink2);white-space:pre-wrap;line-height:1.8;margin-bottom:12px;}
 
+
+.week-nav{display:flex;align-items:center;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;}
+.week-nav-label{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--ink);flex:1;min-width:160px;}
+.week-nav-sub{font-size:12px;color:var(--ink3);font-family:var(--font-body);font-weight:400;margin-left:8px;}
+.nav-btn{width:32px;height:32px;border-radius:var(--radius-sm);border:1.5px solid #E0DEDB;background:var(--surface);cursor:pointer;font-size:16px;color:var(--ink);display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.nav-btn:hover{background:var(--weekday);color:#fff;border-color:var(--weekday);}
+.nav-btn:disabled{opacity:.35;cursor:not-allowed;}
+.nav-btn:disabled:hover{background:var(--surface);color:var(--ink);border-color:#E0DEDB;}
+.week-counter{font-size:12px;color:var(--ink3);min-width:60px;text-align:center;}
+
 /* COVER MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:1rem;}
 .modal{background:var(--surface);border-radius:var(--radius);padding:22px;width:100%;max-width:430px;}
@@ -229,7 +239,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
 <div class="dest-bar">
   <div class="dest-wrap">
     <span class="dest-icon">📍</span>
-    <input class="dest-input" id="destInput" placeholder="Enter destination..."/>
+    <input class="dest-input" id="destInput" placeholder="City, town or postcode..." oninput="syncLocationFromDest(this.value)"/>
   </div>
   <button class="weather-btn" onclick="fetchWeather()">Get weather</button>
   <div id="weatherPills" style="display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;padding:2px 0;min-width:0;flex:1;"></div>
@@ -246,6 +256,15 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
   <!-- PLAN -->
   <div id="planTab">
     <div class="summary-bar" id="summaryBar"></div>
+    <div class="week-nav">
+      <button class="nav-btn" id="prevWeekBtn" onclick="changeWeek(-1)" title="Previous week">&#8592;</button>
+      <div>
+        <span class="week-nav-label" id="weekNavLabel"></span>
+        <span class="week-nav-sub" id="weekNavSub"></span>
+      </div>
+      <span class="week-counter" id="weekCounter"></span>
+      <button class="nav-btn" id="nextWeekBtn" onclick="changeWeek(1)" title="Next week">&#8594;</button>
+    </div>
     <div class="week-grid" id="weekGrid"></div>
   </div>
 
@@ -256,8 +275,8 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-heig
         <div class="map-search-title">Find food &amp; drink nearby</div>
         <div class="map-search-row">
           <div class="map-search-field">
-            <label>UK postcode</label>
-            <input class="map-search-input" id="venueSearchInput" placeholder="e.g. EH1 1YZ or SW1A 1AA" onkeydown="if(event.key==='Enter')searchVenues()"/>
+            <label>Postcode or city / town</label>
+            <input class="map-search-input" id="venueSearchInput" placeholder="e.g. EH1 1YZ or Edinburgh" onkeydown="if(event.key==='Enter')searchVenues()" oninput="syncLocationFromMap(this.value)"/>
             <div id="searchError" style="font-size:11px;color:#cc3300;margin-top:3px;"></div>
           </div>
           <div class="map-search-field radius-field">
@@ -398,14 +417,59 @@ function typeEmoji(t){return{restaurant:'🍽',bar:'🍸',pub:'🍺',cafe:'☕',
 function formatHours(h){if(!h)return'';if(h.length>55)return h.slice(0,52)+'…';return h.replace(/;/g,' · ');}
 
 // ── INIT ───────────────────────────────────────────────────────────────────
+let weekOffset=0; // weeks from current week, 0..51
+
 function init(){
   weekStart=getMondayOfCurrentWeek();
-  const end=addDays(weekStart,6);
-  document.getElementById('heroDate').textContent=fmtShort(weekStart)+' – '+fmtShort(end);
   buildPresets();
   buildVenueTypeChips();
   setHeroBg(PRESETS[0]);
+  updateWeekNav();
   render();
+}
+
+function changeWeek(dir){
+  const newOffset=weekOffset+dir;
+  if(newOffset<0||newOffset>51)return;
+  weekOffset=newOffset;
+  weekStart=addDays(getMondayOfCurrentWeek(),weekOffset*7);
+  // Clear weather data - it won't match the new week
+  weatherData={};
+  document.getElementById('weatherPills').innerHTML='';
+  updateWeekNav();
+  render();
+}
+
+function updateWeekNav(){
+  weekStart=addDays(getMondayOfCurrentWeek(),weekOffset*7);
+  const end=addDays(weekStart,6);
+  const label=document.getElementById('weekNavLabel');
+  const sub=document.getElementById('weekNavSub');
+  const counter=document.getElementById('weekCounter');
+  const prevBtn=document.getElementById('prevWeekBtn');
+  const nextBtn=document.getElementById('nextWeekBtn');
+  const heroDate=document.getElementById('heroDate');
+  if(label)label.textContent=fmtShort(weekStart)+' – '+fmtShort(end);
+  if(sub){
+    if(weekOffset===0)sub.textContent='This week';
+    else if(weekOffset===1)sub.textContent='Next week';
+    else sub.textContent=weekOffset+' weeks ahead';
+  }
+  if(counter)counter.textContent='Week '+(weekOffset+1)+' of 52';
+  if(prevBtn)prevBtn.disabled=weekOffset===0;
+  if(nextBtn)nextBtn.disabled=weekOffset===51;
+  if(heroDate)heroDate.textContent=fmtShort(weekStart)+' – '+fmtShort(end);
+}
+
+function syncLocationFromDest(val){
+  // Keep map search in sync when user updates the dest bar
+  const mapInput=document.getElementById('venueSearchInput');
+  if(mapInput&&val.trim())mapInput.value=val;
+}
+
+function syncLocationFromMap(val){
+  // Keep dest bar in sync when user types in map search
+  if(val.trim())document.getElementById('destInput').value=val;
 }
 
 function setHeroBg(url){coverUrl=url;document.getElementById('heroBg').style.backgroundImage=`url(${url})`;}
@@ -626,13 +690,13 @@ async function geocodeCenter(dest){
 async function searchVenues(){
   const query=document.getElementById('venueSearchInput').value.trim();
   const errEl=document.getElementById('searchError');errEl.textContent='';
-  if(query&&!UK_POSTCODE.test(query)){errEl.textContent='Please enter a valid UK postcode (e.g. EH1 1YZ)';return;}
   const radiusMi=parseFloat(document.getElementById('radiusSlider').value);
   const radiusM=miToMeters(radiusMi);
   const btn=document.getElementById('venueSearchBtn');
   let center=null;
   if(query){
     try{
+      // Append UK to anchor results; works for postcodes and city names
       const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query+' UK')}&format=json&limit=1`);
       const d=await r.json();
       if(d.length)center={lat:parseFloat(d[0].lat),lon:parseFloat(d[0].lon)};
@@ -797,7 +861,13 @@ function switchTab(tab,el){
   document.getElementById('planTab').style.display=tab==='plan'?'':'none';
   document.getElementById('mapTab').style.display=tab==='map'?'':'none';
   document.getElementById('shareTab').style.display=tab==='share'?'':'none';
-  if(tab==='map'){initMap();setTimeout(()=>{leafletMap&&leafletMap.invalidateSize();plotItineraryPins();},100);}
+  if(tab==='map'){
+    // Sync location from dest bar into map search if map search is empty
+    const destVal=document.getElementById('destInput').value.trim();
+    const venueVal=document.getElementById('venueSearchInput').value.trim();
+    if(destVal&&!venueVal)document.getElementById('venueSearchInput').value=destVal;
+    initMap();setTimeout(()=>{leafletMap&&leafletMap.invalidateSize();plotItineraryPins();},100);
+  }
   if(tab==='share')generateShare();
 }
 
